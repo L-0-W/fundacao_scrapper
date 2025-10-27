@@ -234,4 +234,71 @@ const simpleExample = async () => {
   }
 };
 
+const scrapVagasFundacao = async () => {
+  const browser = await puppeteer.launch({ headless: false });
+
+  try {
+    const page = await browser.newPage();
+
+    await page.goto("https://fcv.vagas.solides.com.br/", {
+      waitUntil: "domcontentloaded",
+      timeout: 20000,
+    });
+
+    await page.waitForSelector(
+      ".bg-background-paper.rounded-lg.w-full.flex.flex-col.gap-4.p-4.shadow-sm.relative",
+      { timeout: 2000 }
+    );
+
+    const vagasSelectors = await page.$$eval(
+      ".bg-background-paper.rounded-lg.w-full.flex.flex-col.gap-4.p-4.shadow-sm.relative",
+      (divs) =>
+        divs.map((div) => {
+          const vagas = {
+            datatime: div
+              .getElementsByTagName("time")
+              .item(0)
+              ?.getAttribute("datetime"),
+            vagaLink: div
+              .getElementsByTagName("a")
+              .item(1)
+              ?.getAttribute("href"),
+          };
+
+          return vagas;
+        })
+    );
+
+    console.log(vagasSelectors);
+
+    vagasSelectors.forEach(async (vagas) => {
+      await page.goto(`https://fcv.vagas.solides.com.br${vagas.vagaLink}`, {
+        waitUntil: "domcontentloaded",
+        timeout: 2000,
+      });
+
+      await page.waitForSelector("text-xs.sm:text-sm.font-semibold.leading-5", {
+        timeout: 1500,
+      });
+
+      console.log("chegou");
+      const titulo = await page.$$eval(
+        "h1.text-xs.sm:text-sm.font-semibold.leading-5",
+        (elements) =>
+          elements
+            .map((element) => element.textContent)
+            .filter((titulo) => titulo != null)
+      );
+
+      console.log(titulo);
+    });
+    page.goto("");
+
+    execSync("sleep 2000");
+  } catch {
+  } finally {
+    browser.close();
+  }
+};
+
 simpleExample();
